@@ -10,11 +10,20 @@ import {
   StyleSheet,
 } from "react-native";
 
-// ICON IMPORTS
+//Backend imports
+
+import {createProduct} from '../api/productApi';
+import {ScreenEnum} from '../types/navigation'
+// ICON IMPORTS 
 import ChevronLeft from "lucide-react-native/dist/esm/icons/chevron-left";
 import Upload from "lucide-react-native/dist/esm/icons/upload";
 import X from "lucide-react-native/dist/esm/icons/x";
 import MapPin from "lucide-react-native/dist/esm/icons/map-pin";
+
+import * as ImagePicker from "expo-image-picker";
+import * as Location from "expo-location";
+import { Alert } from "react-native";
+
 
 console.log("📌 ICON CHECK START");
 console.log("ChevronLeft:", ChevronLeft);
@@ -24,6 +33,8 @@ console.log("MapPin:", MapPin);
 console.log("📌 ICON CHECK END");
 
 export default function AddListing({ onNavigate }) {
+  const [location, setLocation] = useState(null);
+const [locationText, setLocationText] = useState("Not set");
   const [step, setStep] = useState(1);
   const [images, setImages] = useState([]);
   const [formData, setFormData] = useState({
@@ -52,9 +63,64 @@ export default function AddListing({ onNavigate }) {
     "Custom Availability",
   ];
 
+ const handlesubmit = async () => {
+  try {
+    const product = {
+      name: formData.title,
+      description: formData.description,
+      category: formData.category,
+      availability: formData.availability, // ✅ REQUIRED
+      deposit: Number(formData.deposit),
+      pricePerDay: Number(formData.pricePerDay),
+      imageUrl: images[0] || "https://picsum.photos/200",
+    };
+
+    console.log("📤 SENDING PRODUCT:", product);
+
+    await createProduct(product);
+    onNavigate(ScreenEnum.EXPLORE);
+  } catch (error) {
+    console.error("❌ Failed to create Product", error);
+  }
+};
+
+  const getCurrentLocation = async () => {
+  try {
+    const { status } = await Location.requestForegroundPermissionsAsync();
+    if (status !== "granted") {
+      Alert.alert("Permission denied", "Location access is required");
+      return;
+    }
+
+    const loc = await Location.getCurrentPositionAsync({
+      accuracy: Location.Accuracy.High,
+    });
+
+    const address = await Location.reverseGeocodeAsync({
+      latitude: loc.coords.latitude,
+      longitude: loc.coords.longitude,
+    });
+
+    const place = address[0];
+    const readableLocation = `${place.city || ""}, ${place.region || ""}`;
+
+    setLocation({
+      latitude: loc.coords.latitude,
+      longitude: loc.coords.longitude,
+    });
+
+    setLocationText(readableLocation);
+  } catch (error) {
+    console.error("❌ Location error:", error);
+    Alert.alert("Error", "Failed to get location");
+  }
+};
+
+
+
   const handleNext = () => {
     if (step < 6) setStep(step + 1);
-    else onNavigate?.("my-listings");
+    else handlesubmit();
   };
 
   const handleBack = () => {
@@ -65,6 +131,50 @@ export default function AddListing({ onNavigate }) {
   const handleChange = (field, value) => {
     setFormData({ ...formData, [field]: value });
   };
+
+  const pickFromGallery = async () => {
+  const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+  if (!permission.granted) {
+    Alert.alert("Permission required", "Gallery access is needed");
+    return;
+  }
+
+  const result = await ImagePicker.launchImageLibraryAsync({
+    mediaTypes: ImagePicker.MediaTypeOptions.Images,
+    allowsMultipleSelection: true,
+    selectionLimit: 6 - images.length,
+    quality: 0.8,
+  });
+
+  if (!result.canceled) {
+    const newImages = result.assets.map((asset) => asset.uri);
+    setImages((prev) => [...prev, ...newImages].slice(0, 6));
+  }
+};
+
+const pickFromCamera = async () => {
+  const permission = await ImagePicker.requestCameraPermissionsAsync();
+  if (!permission.granted) {
+    Alert.alert("Permission required", "Camera access is needed");
+    return;
+  }
+
+  const result = await ImagePicker.launchCameraAsync({
+    quality: 0.8,
+  });
+
+  if (!result.canceled) {
+    setImages((prev) => [...prev, result.assets[0].uri].slice(0, 6));
+  }
+};
+
+const openImageOptions = () => {
+  Alert.alert("Add Photo", "Choose source", [
+    { text: "Camera", onPress: pickFromCamera },
+    { text: "Gallery", onPress: pickFromGallery },
+    { text: "Cancel", style: "cancel" },
+  ]);
+};
 
   const renderStep = () => {
     switch (step) {
@@ -88,7 +198,8 @@ export default function AddListing({ onNavigate }) {
               ))}
 
               {images.length < 6 && (
-                <TouchableOpacity style={styles.addPhoto}>
+                <TouchableOpacity style={styles.addPhoto} onPress={openImageOptions}>
+
                   <Upload color="#999" size={32} />
                   <Text style={{ color: "#666", marginTop: 4 }}>Add photo</Text>
                 </TouchableOpacity>
@@ -215,9 +326,16 @@ export default function AddListing({ onNavigate }) {
             <Text style={styles.subtext}>Set meet-up radius</Text>
 
             <View style={styles.mapBox}>
-              <MapPin color="#999" size={32} />
-              <Text style={styles.hint}>Your Location: San Francisco, CA</Text>
-            </View>
+  <MapPin color="#0d9488" size={32} />
+  <Text style={styles.hint}>{locationText}</Text>
+
+  <TouchableOpacity onPress={getCurrentLocation} style={{ marginTop: 10 }}>
+    <Text style={{ color: "#0d9488", fontWeight: "600" }}>
+      Use Current Location
+    </Text>
+  </TouchableOpacity>
+</View>
+
           </View>
         );
 

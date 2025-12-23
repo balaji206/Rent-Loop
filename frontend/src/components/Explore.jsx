@@ -1,4 +1,3 @@
-import React, { useState } from "react";
 import {
   View,
   Text,
@@ -15,19 +14,35 @@ import {
   Star,
   MapPin,
 } from "lucide-react-native";
-import { mockProducts } from "./mockData";
 import { ScreenEnum } from "../types/navigation";
+import React, { useEffect, useState } from "react";
+import { fetchProducts } from "../api/productApi";
 
 export function Explore({ onNavigate }) {
   const [searchQuery, setSearchQuery] = useState("");
   const [priceRange, setPriceRange] = useState([0, 100]);
   const [maxDistance, setMaxDistance] = useState([5]);
   const [sortBy, setSortBy] = useState("newest");
+  const [products, setProducts] = useState([]);
 
-  const filteredProducts = mockProducts.filter(
-    (product) =>
-      product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      product.description.toLowerCase().includes(searchQuery.toLowerCase())
+  // ✅ Load products when screen mounts
+  useEffect(() => {
+    loadProducts();
+  }, []);
+
+  const loadProducts = async () => {
+    try {
+      const data = await fetchProducts();
+      console.log("🔥 BACKEND DATA IN RN:", data);
+      setProducts(data);
+    } catch (error) {
+      console.error("❌ API ERROR:", error);
+    }
+  };
+ 
+
+  const filteredProducts = products.filter((product) =>
+    product.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   return (
@@ -35,7 +50,6 @@ export function Explore({ onNavigate }) {
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.headerRow}>
-          {/* ✅ FIXED BACK BUTTON — It should go to HOME, not PRODUCT */}
           <TouchableOpacity onPress={() => onNavigate(ScreenEnum.HOME)}>
             <ChevronLeft color="#374151" size={26} />
           </TouchableOpacity>
@@ -72,14 +86,18 @@ export function Explore({ onNavigate }) {
         {filteredProducts.map((product) => (
           <TouchableOpacity
             key={product.id}
-            // ✅ FIXED — use ScreenEnum, not Screens
             onPress={() => onNavigate(ScreenEnum.PRODUCT, product)}
             style={styles.productCard}
           >
             <Image
-              source={{ uri: product.image }}
+              source={{
+                uri: product.imageUrl?.startsWith("http")
+                  ? product.imageUrl
+                  : "https://picsum.photos/200",
+              }}
               style={styles.productImage}
             />
+
             <View style={styles.productInfo}>
               <Text style={styles.productName}>{product.name}</Text>
               <Text style={styles.productDescription}>
@@ -87,18 +105,27 @@ export function Explore({ onNavigate }) {
               </Text>
 
               <View style={styles.ratingRow}>
-                <View style={styles.inlineRow}>
-                  <Star color="#facc15" fill="#facc15" size={14} />
-                  <Text style={styles.ratingText}>{product.rating}</Text>
-                </View>
-                <Text style={styles.dot}>•</Text>
-                <View style={styles.inlineRow}>
-                  <MapPin color="#6b7280" size={14} />
-                  <Text style={styles.distanceText}>{product.distance} km</Text>
-                </View>
-              </View>
+  <View style={styles.inlineRow}>
+    <Star color="#facc15" fill="#facc15" size={14} />
+    <Text style={styles.ratingText}>
+      {product.rating ?? "4.5"}
+    </Text>
+  </View>
 
-              <Text style={styles.priceText}>${product.pricePerDay}/day</Text>
+  <Text style={styles.dot}>•</Text>
+
+  <View style={styles.inlineRow}>
+    <MapPin color="#6b7280" size={14} />
+    <Text style={styles.distanceText}>
+      {product.distance ?? "2"} km
+    </Text>
+  </View>
+</View>
+
+
+              <Text style={styles.priceText}>
+                ${product.pricePerDay}/day
+              </Text>
             </View>
           </TouchableOpacity>
         ))}
@@ -106,6 +133,7 @@ export function Explore({ onNavigate }) {
     </View>
   );
 }
+
 
 // ✅ Styles
 const styles = StyleSheet.create({
