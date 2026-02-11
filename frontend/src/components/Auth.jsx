@@ -18,32 +18,34 @@ import {
   EyeOff,
 } from "lucide-react-native";
 
+import AsyncStorage from "@react-native-async-storage/async-storage";
+
+
 /* --------------------------------------------------------
    MOCK API
 ---------------------------------------------------------*/
-const mockAuthApiCall = (isLogin, email, password, phone) => {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      if (!email || !password || (!isLogin && !phone)) {
-        resolve({ success: false, message: "Please fill all required fields." });
-        return;
-      }
+const authApiCall = async (isLogin, email, password, phone) => {
+  try {
+    const url = isLogin
+      ? "http://10.0.2.2:8080/api/auth/login"
+      : "http://10.0.2.2:8080/api/auth/signup";
 
-      if (email === "test@rentloop.com" && password === "password") {
-        resolve({ success: true, message: "Sign In successful!" });
-      } else if (!isLogin && email.includes("@") && password.length >= 6) {
-        resolve({ success: true, message: "Account created successfully!" });
-      } else {
-        resolve({
-          success: false,
-          message: isLogin
-            ? "Invalid credentials. Try test@rentloop.com / password"
-            : "Registration failed. Check email format or password length.",
-        });
-      }
-    }, 1200);
-  });
+    const body = isLogin
+      ? { email, password }
+      : { email, password, phone };
+
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+
+    return await res.json();
+  } catch (err) {
+    return { success: false, message: "Server error" };
+  }
 };
+
 
 /* --------------------------------------------------------
    MESSAGE BAR
@@ -98,20 +100,29 @@ const handleSubmit = async () => {
   setMessage(null);
   setIsLoading(true);
 
-  const result = await mockAuthApiCall(isLogin, email, password, phone);
+  const result = await authApiCall(isLogin, email, password, phone);
 
   if (result.success) {
-    setMessage({ type: "success", text: result.message });
+    // LOGIN → STORE JWT
+    if (isLogin && result.token) {
+      await AsyncStorage.setItem("token", result.token);
+    }
+
+    setMessage({
+      type: "success",
+      text: isLogin ? "Login successful" : "Account created successfully",
+    });
 
     setTimeout(() => {
-      onAuthSuccess(); // ← FIXED!
+      onAuthSuccess();
     }, 400);
   } else {
-    setMessage({ type: "error", text: result.message });
+    setMessage({ type: "error", text: result.message || "Auth failed" });
   }
 
   setIsLoading(false);
 };
+
 
 
   /* --------------------------------------------------------

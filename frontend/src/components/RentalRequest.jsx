@@ -9,7 +9,7 @@ import {
 import { useState } from "react";
 import { ChevronLeft, Calendar as CalendarIcon, MapPin } from "lucide-react-native";
 import ImageWithFallback from "./figma/ImageWithFallback";
-import Calendar from "./ui/calendar"; // ✅ your working calendar
+import Calendar from "./ui/calendar"; 
 import { ScreenEnum } from "../types/navigation";
 import { ScrollView } from "react-native";
 
