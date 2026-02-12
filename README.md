@@ -1,4 +1,4 @@
-# 📱 RentLoop – Peer-to-Peer Rental Mobile App
+# 📱 RentLoop – Rental Mobile App
 
 RentLoop is a **React Native mobile application** with a **Spring Boot backend** that allows users to **rent out products they own** and **rent products they need** for flexible durations such as **hourly or daily**.
 
@@ -53,39 +53,6 @@ This app promotes the **sharing economy** by helping users save money, reduce wa
 - Git & GitHub
 - Postman (API testing)
 - Android Studio / Emulator
-
----
-
-## 📂 Project Structure
-
-### 📱 React Native (Frontend)
-
-frontend/
-│── src/
-│   ├── components/
-│   ├── screens/
-│   ├── navigation/
-│   ├── services/
-│   ├── utils/
-│── App.js
-│── package.json
-
-
-
-### 🌐 Spring Boot (Backend)
-
-demo/
-│── src/
-│   ├── main/
-│   │   ├── java/
-│   │   │   ├── controller/
-│   │   │   ├── service/
-│   │   │   ├── repository/
-│   │   │   ├── model/
-│   │   └── resources/
-│   │       └── application.properties
-
-
 
 ---
 
